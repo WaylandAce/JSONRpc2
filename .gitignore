@@ -1,0 +1,6 @@
+.project
+.settings
+*.iml
+.idea/
+*.swp
+vendor

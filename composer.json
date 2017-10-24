@@ -1,0 +1,21 @@
+{
+    "name": "waylandace/jsonrpc2",
+    "description": "JSONRPC 2.0 Client and Server",
+    "license": "MIT",
+    "authors": [{
+        "name": "Pavel Kirpitsov",
+        "email": "pavel.kirpichyov@gmail.com",
+        "role": "developer"
+    }],
+    "autoload": {
+        "psr-4": {
+            "pavelk\\JsonRPC\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=7.0.0"
+    },
+    "require-dev": {
+
+    }
+}
