@@ -65,6 +65,6 @@ class MyClass
 }
 
 // create a new instance of Junior\Server with an instance of your class
-$server = new Dyninno\JsonRPC\Server(MyClass::class);
+$server = new pavelk\JsonRPC\Server(MyClass::class);
 // call process()
 $server->process();
