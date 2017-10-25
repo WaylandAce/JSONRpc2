@@ -14,7 +14,7 @@ const ERROR_EXCEPTION        = -32099;
 
 class Server
 {
-    public $exposedInstance, $input, $map;
+    public $map;
 
     /**
      * Server constructor.
@@ -23,12 +23,6 @@ class Server
      */
     public function __construct($className = null, $namespace = '')
     {
-//        if (!is_object($className)) {
-//            throw new Serverside\Exception("Server requires an object");
-//        }
-
-        $this->input = 'php://input';
-
         if ($className)
             $this->addInstance($className, $namespace);
     }
@@ -123,14 +117,12 @@ class Server
     }
 
     /**
+     * @param $json
      * @return string
      * @throws \Exception
      */
-    public function getResponse()
+    public function getResponse($json)
     {
-        // try to read input
-        $json = file_get_contents($this->input);
-
         try {
             // create request object
             $request  = $this->makeRequest($json);
@@ -144,17 +136,18 @@ class Server
 
         if ($response instanceof Response) {
             return $response->toJson();
-        } else {
-            $batch = [];
-            foreach ($response as $resp) {
-                $batch[] = $resp->toJson();
-            }
-            $responses = implode(',', array_filter($batch, function ($a) {
-                return $a !== null;
-            }));
-
-            return "[" . $responses . "]";
         }
+
+        $batch = [];
+        /** @var Response $resp */
+        foreach ($response as $resp) {
+            $batch[] = $resp->toJson();
+        }
+        $responses = implode(',', array_filter($batch, function ($a) {
+            return $a !== null;
+        }));
+
+        return "[" . $responses . "]";
     }
 
     /**
@@ -162,7 +155,10 @@ class Server
      */
     public function process()
     {
-        echo $this->getResponse();
+        // try to read input
+        $json = file_get_contents('php://input');
+
+        echo $this->getResponse($json);
     }
 
     /**
