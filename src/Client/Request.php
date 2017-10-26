@@ -17,7 +17,7 @@ class Request
      * @param $method
      * @param null $params
      * @param bool $notify
-     * @throws Exception
+     * @throws ClientException
      */
     public function __construct($method, $params = null, $notify = false)
     {
@@ -28,7 +28,7 @@ class Request
 
         // check for illegal method prefix
         if (substr($method, 0, 4) == 'rpc.') {
-            throw new Exception("Illegal method name; Method cannot start with 'rpc.'");
+            throw new ClientException("Illegal method name; Method cannot start with 'rpc.'");
         }
 
         // ensure params are utf8

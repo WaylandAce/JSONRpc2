@@ -3,7 +3,7 @@
 namespace pavelk\JsonRPC\Client;
 
 
-class Exception extends \Exception
+class ClientException extends \Exception
 {
 
 }

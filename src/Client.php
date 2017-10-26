@@ -4,7 +4,7 @@ namespace pavelk\JsonRPC;
 
 use pavelk\JsonRPC\Client\Request,
     pavelk\JsonRPC\Client\Response,
-    pavelk\JsonRPC\Client\Exception;
+    pavelk\JsonRPC\Client\ClientException;
 
 
 class Client
@@ -24,12 +24,12 @@ class Client
     /**
      * shortcut to call a single, non-notification request
      *
-     * @param $method
+     * @param string $method
      * @param $params
      * @return string
-     * @throws Exception
+     * @throws ClientException
      */
-    public function __call($method, $params)
+    public function __call(string $method, $params)
     {
         $request = new Request($method, $params);
 
@@ -37,18 +37,18 @@ class Client
     }
 
     /**
-     * set basic http authentication
+     * Set basic http authentication
      *
-     * @param $username
-     * @param $password
+     * @param string $username
+     * @param string $password
      */
-    public function setBasicAuth($username, $password)
+    public function setBasicAuth(string $username, string $password)
     {
         $this->authHeader = "Authorization: Basic " . base64_encode("$username:$password") . "\r\n";
     }
 
     /**
-     * clear any existing http authentication
+     * Clear any existing http authentication
      */
     public function clearAuth()
     {
@@ -56,41 +56,41 @@ class Client
     }
 
     /**
-     * send a single request object
+     * Send a single request object
      *
      * @param Request $request
      * @return array|string
-     * @throws Exception
+     * @throws ClientException
      */
-    public function sendRequest($request)
+    public function sendRequest(Request $request)
     {
         return $this->send($request->getJSON());
     }
 
     /**
-     * send a single notify request object
+     * Send a single notify request object
      *
-     * @param Request $req
+     * @param Request $request
      * @return bool
-     * @throws Exception
+     * @throws ClientException
      */
-    public function sendNotify($req)
+    public function sendNotify(Request $request)
     {
-        if (property_exists($req, 'id') && $req->id != null) {
-            throw new Client\Exception("Notify requests must not have ID set");
+        if (property_exists($request, 'id') && $request->id != null) {
+            throw new Client\ClientException("Notify requests must not have ID set");
         }
 
-        $this->send($req->getJSON(), true);
+        $this->send($request->getJSON(), true);
 
         return true;
     }
 
     /**
-     * send an array of request objects as a batch
+     * Send an array of request objects as a batch
      *
      * @param Request[] $requests
      * @return array|bool
-     * @throws Exception
+     * @throws ClientException
      */
     public function sendBatch(array $requests)
     {
@@ -118,27 +118,27 @@ class Client
                 $orderedResponse[] = $response[$id];
                 unset($response[$id]);
             } else {
-                throw new Client\Exception("Missing id in response");
+                throw new Client\ClientException("Missing id in response");
             }
         }
 
         // check for extra ids in response
         if (count($response) > 0) {
-            throw new Client\Exception("Extra id(s) in response");
+            throw new Client\ClientException("Extra id(s) in response");
         }
 
         return $orderedResponse;
     }
 
     /**
-     * send raw json to the server
+     * Send raw json to the server
      *
-     * @param $json
+     * @param string $json
      * @param bool $notify
      * @return array|bool|Response
-     * @throws Exception
+     * @throws ClientException
      */
-    public function send($json, $notify = false)
+    public function send(string $json, $notify = false)
     {
         // use http authentication header if set
         $header = "Content-Type: application/json\r\n";
@@ -160,12 +160,12 @@ class Client
         } catch (\Exception $e) {
             $message = "Unable to connect to {$this->uri}";
             $message .= PHP_EOL . $e->getMessage();
-            throw new Client\Exception($message);
+            throw new Client\ClientException($message);
         }
 
         // handle communication errors
         if ($response === false) {
-            throw new Client\Exception("Unable to connect to {$this->uri}");
+            throw new Client\ClientException("Unable to connect to {$this->uri}");
         }
 
         // notify has no response
@@ -183,15 +183,15 @@ class Client
     /**
      * decode json throwing exception if unable
      *
-     * @param $json
+     * @param string $json
      * @return mixed
-     * @throws Exception
+     * @throws ClientException
      */
-    function decodeJSON($json)
+    private function decodeJSON(string $json)
     {
         $jsonResponse = json_decode($json);
         if ($jsonResponse === null) {
-            throw new Client\Exception("Unable to decode JSON response from: {$json}");
+            throw new Client\ClientException("Unable to decode JSON response from: {$json}");
         }
 
         return $jsonResponse;

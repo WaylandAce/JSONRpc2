@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: pkirpitsov
- * Date: 10/3/17
- * Time: 1:36 PM
- */
 
 namespace pavelk\JsonRPC\Server;
 
@@ -37,7 +31,11 @@ class Response
             return json_encode($arr);
             // error response
         } else {
-            $arr['error'] = array('code' => $this->errorCode, 'message' => $this->errorMessage);
+            $arr['error'] = array(
+                'code' => $this->errorCode,
+                'message' => $this->errorMessage
+            );
+
             $arr['id']    = $this->id;
 
             return json_encode($arr);

@@ -2,48 +2,45 @@
 
 namespace pavelk\JsonRPC;
 
-use pavelk\JsonRPC\Server\Exception;
+use pavelk\JsonRPC\Server\Exception\InternalErrorException;
+use pavelk\JsonRPC\Server\Exception\InvalidParamsException;
+use pavelk\JsonRPC\Server\Exception\MethodNotFoundException;
+use pavelk\JsonRPC\Server\Exception\ServerException;
 use pavelk\JsonRPC\Server\Request;
 use pavelk\JsonRPC\Server\Response;
-
-const ERROR_INVALID_REQUEST  = -32600;
-const ERROR_METHOD_NOT_FOUND = -32601;
-const ERROR_INVALID_PARAMS   = -32602;
-const ERROR_INTERNAL_ERROR   = -32603;
-const ERROR_EXCEPTION        = -32099;
 
 
 class Server
 {
-    public $map;
+    protected $map = [];
 
     /**
      * Server constructor.
-     * @param null $className
+     * @param string|null $className
      * @param string $namespace
      */
-    public function __construct($className = null, $namespace = '')
+    public function __construct(string $className = null, string $namespace = '')
     {
         if ($className)
             $this->addInstance($className, $namespace);
     }
 
     /**
-     * @param $className
+     * @param string $className
      * @param string $namespace
      */
-    public function addInstance($className, $namespace = '')
+    public function addInstance(string $className, string $namespace = '')
     {
         $this->map[$namespace] = $className;
     }
 
     /**
-     * check for method existence
+     * Check for method existence
      *
-     * @param $methodName
+     * @param string $methodName
      * @return bool
      */
-    public function methodExists($methodName)
+    public function methodExists(string $methodName)
     {
         list($namespace, $method) = $this->parseMethod($methodName);
 
@@ -54,10 +51,10 @@ class Server
     }
 
     /**
-     * @param $methodName
+     * @param string $methodName
      * @return array
      */
-    public function parseMethod($methodName)
+    public function parseMethod(string $methodName)
     {
         $parts = explode('.', $methodName);
         if (count($parts) == 1) {
@@ -72,15 +69,15 @@ class Server
     }
 
     /**
-     * attempt to invoke the method with params
+     * Attempt to invoke the method with params
      *
-     * @param $method
+     * @param string $method
      * @param null $params
      * @return mixed
-     * @throws Exception
-     * @throws \ReflectionException
+     * @throws InvalidParamsException
+     * @throws MethodNotFoundException
      */
-    public function invokeMethod($method, $params = null)
+    public function invokeMethod(string $method, $params = null)
     {
         // for named parameters, convert from object to assoc array
         if (is_object($params)) {
@@ -97,43 +94,35 @@ class Server
 
         list($namespace, $methodName) = $this->parseMethod($method);
         if (!isset($this->map[$namespace]))
-            throw new \ReflectionException('Method not exists');
+            throw new MethodNotFoundException();
 
-        $instance = new $this->map[$namespace];
-
+        $instance   = new $this->map[$namespace];
         $reflection = new \ReflectionMethod($instance, $methodName);
 
         // only allow calls to public functions
         if (!$reflection->isPublic()) {
-            throw new Server\Exception("Called method is not public accessible.");
+            throw new MethodNotFoundException("Called method is not public accessible.");
         }
 
         // enforce correct number of arguments
         $numRequiredParams = $reflection->getNumberOfRequiredParameters();
         if ($numRequiredParams > count($params)) {
-            throw new Server\Exception("Too few parameters passed.");
+            throw new InvalidParamsException("Too few parameters passed");
         }
 
         return $reflection->invokeArgs($instance, $params);
     }
 
     /**
-     * @param $json
+     * @param string $json
      * @return string
-     * @throws \Exception
+     * @throws ServerException
      */
-    public function getResponse($json)
+    public function getResponse(string $json)
     {
-        try {
-            // create request object
-            $request  = $this->makeRequest($json);
-            $response = $this->handleRequest($request);
-        } catch (Server\Exception $e) {
-            $response = new Response();
-
-            $response->errorCode    = $e->getCode();
-            $response->errorMessage = $e->getMessage();
-        }
+        // create request object
+        $request  = new Request($json);
+        $response = $this->handleRequest($request);
 
         if ($response instanceof Response) {
             return $response->toJson();
@@ -152,7 +141,7 @@ class Server
     }
 
     /**
-     * @throws \Exception
+     * @throws ServerException
      */
     public function process()
     {
@@ -163,23 +152,11 @@ class Server
     }
 
     /**
-     * create new request (used for test mocking purposes)
-     *
-     * @param $json
-     * @return Request
-     */
-    public function makeRequest($json)
-    {
-        return new Request($json);
-    }
-
-    /**
-     * handle request object / return response json
+     * Handle request object / return response json
      *
      * @param Request $request
-     * @return Response|null|string
-     * @throws Exception
-     * @throws \Exception
+     * @return array|null|Response
+     * @throws ServerException
      */
     public function handleRequest(Request $request)
     {
@@ -193,33 +170,30 @@ class Server
             return $batch;
         }
 
-        $response = new Response();
+        $response     = new Response();
+        $response->id = $request->id;
 
         try {
-            // check validity of request
-            $request->checkValid();
+            try {
+                // check validity of request
+                $request->checkValid();
 
-            $rawResponse = $this->invokeMethod($request->method, $request->params);
-            if ($request->isNotify())
-                return null;
+                $rawResponse = $this->invokeMethod($request->method, $request->params);
+                if ($request->isNotify())
+                    return null;
 
-            $response->id     = $request->id;
-            $response->result = $rawResponse;
-            // return whatever we got
-        } catch (\ReflectionException $e) {
-            $response->id           = $request->id;
-            $response->errorCode    = ERROR_METHOD_NOT_FOUND;
-            $response->errorMessage = 'Method not exists.';
-        } catch (Exception $e) {
-            $response->id           = $request->id;
+                $response->result = $rawResponse;
+            } catch (\ReflectionException $e) {
+                throw new MethodNotFoundException();
+            } catch (ServerException $e) {
+                throw $e;
+            } catch (\Exception $e) {
+                throw new InternalErrorException();
+                // TODO: log
+            }
+        } catch (ServerException $e) {
             $response->errorCode    = $e->getCode();
             $response->errorMessage = $e->getMessage();
-        } catch (\Exception $e) {
-            $response->id           = $request->id;
-            $response->errorCode    = ERROR_INTERNAL_ERROR;
-            $response->errorMessage = 'Internal Error';
-
-            // TODO: log
         }
 
         return $response;

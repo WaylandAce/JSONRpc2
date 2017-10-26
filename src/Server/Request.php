@@ -2,14 +2,13 @@
 
 namespace pavelk\JsonRPC\Server;
 
+use pavelk\JsonRPC\Server\Exception\InvalidRequestException;
+use pavelk\JsonRPC\Server\Exception\ParseErrorException;
+
 
 class Request
 {
     const JSON_RPC_VERSION         = "2.0";
-    const ERROR_PARSE_ERROR        = -32700;
-    const ERROR_INVALID_REQUEST    = -32600;
-    const ERROR_MISMATCHED_VERSION = -32000;
-    const ERROR_RESERVED_PREFIX    = -32001;
     const VALID_FUNCTION_NAME      = '/^[a-zA-Z_][a-zA-Z0-9_\.]*$/';
 
     public $batch;
@@ -27,7 +26,8 @@ class Request
      *
      * Request constructor.
      * @param null $json
-     * @throws Exception
+     * @throws InvalidRequestException
+     * @throws ParseErrorException
      */
     public function __construct($json = null)
     {
@@ -36,7 +36,7 @@ class Request
 
         // handle empty request
         if ($this->raw === false || $this->raw === "") {
-            throw new Exception("Invalid Request.", self::ERROR_INVALID_REQUEST);
+            throw new InvalidRequestException();
         }
 
         // parse json into object
@@ -44,7 +44,7 @@ class Request
 
         // handle json parse error
         if ($obj === null) {
-            throw new Exception("Parse error.", self::ERROR_PARSE_ERROR);
+            throw new ParseErrorException();
         }
 
         // array of objects for batch
@@ -52,7 +52,7 @@ class Request
 
             // empty batch
             if (count($obj) == 0) {
-                throw new Exception("Invalid Request.", self::ERROR_INVALID_REQUEST);
+                throw new InvalidRequestException();
             }
 
             // non-empty batch
@@ -94,29 +94,28 @@ class Request
     /**
      * returns true if request is valid or returns false assigns error
      *
-     * @throws Exception
-     * @throws \Exception
+     * @throws InvalidRequestException
      */
     public function checkValid()
     {
         // missing jsonrpc or method
         if (!$this->jsonRpc || !$this->method) {
-            throw new Exception("Invalid Request.", self::ERROR_INVALID_REQUEST);
+            throw new InvalidRequestException();
         }
 
         // reserved method prefix
         if (substr($this->method, 0, 4) == 'rpc.') {
-            throw new Exception("Illegal method name; Method cannot start with 'rpc.'", self::ERROR_RESERVED_PREFIX);
+            throw new InvalidRequestException("Illegal method name; Method cannot start with 'rpc.'");
         }
 
         // illegal method name
         if (!preg_match(self::VALID_FUNCTION_NAME, $this->method)) {
-            throw new \Exception("Invalid Request.", self::ERROR_INVALID_REQUEST);
+            throw new InvalidRequestException();
         }
 
         // mismatched json-rpc version
         if ($this->jsonRpc != "2.0") {
-            throw new \Exception("Client/Server JSON-RPC version mismatch; Expected '2.0'", self::ERROR_MISMATCHED_VERSION);
+            throw new InvalidRequestException("Client/Server JSON-RPC version mismatch; Expected '2.0'");
         }
     }
 
@@ -125,7 +124,7 @@ class Request
      *
      * @return bool
      */
-    public function isBatch()
+    public function isBatch(): bool
     {
         return $this->batch;
     }
@@ -135,7 +134,7 @@ class Request
      *
      * @return bool
      */
-    public function isNotify()
+    public function isNotify(): bool
     {
         return !isset($this->id);
     }
