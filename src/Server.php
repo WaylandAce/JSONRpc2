@@ -9,6 +9,7 @@ use pavelk\JsonRPC\Server\Response;
 const ERROR_INVALID_REQUEST  = -32600;
 const ERROR_METHOD_NOT_FOUND = -32601;
 const ERROR_INVALID_PARAMS   = -32602;
+const ERROR_INTERNAL_ERROR   = -32603;
 const ERROR_EXCEPTION        = -32099;
 
 
@@ -215,8 +216,10 @@ class Server
             $response->errorMessage = $e->getMessage();
         } catch (\Exception $e) {
             $response->id           = $request->id;
-            $response->errorCode    = ERROR_EXCEPTION;
-            $response->errorMessage = $e->getMessage();
+            $response->errorCode    = ERROR_INTERNAL_ERROR;
+            $response->errorMessage = 'Internal Error';
+
+            // TODO: log
         }
 
         return $response;
