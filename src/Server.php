@@ -9,20 +9,25 @@ use pavelk\JsonRPC\Server\Exception\ServerException;
 use pavelk\JsonRPC\Server\Request;
 use pavelk\JsonRPC\Server\Response;
 
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 
-class Server
+
+class Server implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
+    /** @var array */
     protected $map = [];
 
     /**
      * Server constructor.
-     * @param string|null $className
-     * @param string $namespace
+     * @param LoggerInterface $logger
      */
-    public function __construct(string $className = null, string $namespace = '')
+    public function __construct(LoggerInterface $logger)
     {
-        if ($className)
-            $this->addInstance($className, $namespace);
+        $this->setLogger($logger);
     }
 
     /**
@@ -65,7 +70,7 @@ class Server
             $namespace = implode('.', $parts);
         }
 
-        return array($namespace, $method);
+        return [$namespace, $method];
     }
 
     /**
@@ -81,15 +86,15 @@ class Server
     {
         // for named parameters, convert from object to assoc array
         if (is_object($params)) {
-            $array = array();
+            $array = [];
             foreach ($params as $key => $val) {
                 $array[$key] = $val;
             }
-            $params = array($array);
+            $params = [$array];
         }
         // for no params, pass in empty array
         if ($params === null) {
-            $params = array();
+            $params = [];
         }
 
         list($namespace, $methodName) = $this->parseMethod($method);
@@ -162,7 +167,7 @@ class Server
     {
         // recursion for batch
         if ($request->isBatch()) {
-            $batch = array();
+            $batch = [];
             foreach ($request->requests as $req) {
                 $batch[] = $this->handleRequest($req);
             }
@@ -188,8 +193,10 @@ class Server
             } catch (ServerException $e) {
                 throw $e;
             } catch (\Exception $e) {
+
+                $this->logger->error($e->getMessage() . $e->getTraceAsString());
+
                 throw new InternalErrorException();
-                // TODO: log
             }
         } catch (ServerException $e) {
             $response->errorCode    = $e->getCode();
