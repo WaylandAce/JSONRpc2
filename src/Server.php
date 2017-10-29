@@ -20,9 +20,9 @@ class Server
 
     /**
      * Server constructor.
-     * @param EventDispatcherInterface $eventDispatcher
+     * @param EventDispatcherInterface|null $eventDispatcher
      */
-    public function __construct(EventDispatcherInterface $eventDispatcher)
+    public function __construct(EventDispatcherInterface $eventDispatcher = null)
     {
         $this->eventDispatcher = $eventDispatcher;
     }
@@ -191,7 +191,8 @@ class Server
                 throw $e;
             } catch (\Exception $e) {
 
-                $this->eventDispatcher->dispatch(ExceptionEvent::NAME, new ExceptionEvent($e));
+                if ($this->eventDispatcher)
+                    $this->eventDispatcher->dispatch(ExceptionEvent::NAME, new ExceptionEvent($e));
 
                 throw new InternalErrorException();
             }
