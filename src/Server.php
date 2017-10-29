@@ -2,32 +2,29 @@
 
 namespace pavelk\JsonRPC;
 
+use pavelk\JsonRPC\Exception\ExceptionEvent;
 use pavelk\JsonRPC\Server\Exception\InternalErrorException;
 use pavelk\JsonRPC\Server\Exception\InvalidParamsException;
 use pavelk\JsonRPC\Server\Exception\MethodNotFoundException;
 use pavelk\JsonRPC\Server\Exception\ServerException;
 use pavelk\JsonRPC\Server\Request;
 use pavelk\JsonRPC\Server\Response;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
-use Psr\Log\LoggerAwareInterface;
-use Psr\Log\LoggerAwareTrait;
-use Psr\Log\LoggerInterface;
-
-
-class Server implements LoggerAwareInterface
+class Server
 {
-    use LoggerAwareTrait;
+    protected $eventDispatcher;
 
     /** @var array */
     protected $map = [];
 
     /**
      * Server constructor.
-     * @param LoggerInterface $logger
+     * @param EventDispatcherInterface $eventDispatcher
      */
-    public function __construct(LoggerInterface $logger)
+    public function __construct(EventDispatcherInterface $eventDispatcher)
     {
-        $this->setLogger($logger);
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     /**
@@ -194,7 +191,7 @@ class Server implements LoggerAwareInterface
                 throw $e;
             } catch (\Exception $e) {
 
-                $this->logger->error($e->getMessage() . $e->getTraceAsString());
+                $this->eventDispatcher->dispatch(ExceptionEvent::NAME, new ExceptionEvent($e));
 
                 throw new InternalErrorException();
             }
