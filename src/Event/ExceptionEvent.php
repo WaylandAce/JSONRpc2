@@ -1,6 +1,6 @@
 <?php
 
-namespace pavelk\JsonRPC\Exception;
+namespace pavelk\JsonRPC\Event;
 
 use Symfony\Component\EventDispatcher\Event;
 

@@ -2,7 +2,7 @@
 
 namespace pavelk\JsonRPC;
 
-use pavelk\JsonRPC\Exception\ExceptionEvent;
+use pavelk\JsonRPC\Event\ExceptionEvent;
 use pavelk\JsonRPC\Server\Exception\InternalErrorException;
 use pavelk\JsonRPC\Server\Exception\InvalidParamsException;
 use pavelk\JsonRPC\Server\Exception\MethodNotFoundException;
