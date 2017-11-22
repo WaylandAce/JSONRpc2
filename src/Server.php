@@ -96,11 +96,10 @@ class Server
 
         // enforce correct number of arguments
         $numRequiredParams = $reflection->getNumberOfRequiredParameters();
+        $params            = $this->prepareArgs($reflection, $params);
         if ($numRequiredParams > count($params)) {
             throw new InvalidParamsException("Too few parameters passed");
         }
-
-        $params = $this->prepareArgs($reflection, $params);
 
         return $reflection->invokeArgs($instance, $params);
     }
