@@ -11,6 +11,7 @@ use pavelk\JsonRPC\Server\Request;
 use pavelk\JsonRPC\Server\Response;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
+
 class Server
 {
     protected $eventDispatcher;
@@ -22,7 +23,9 @@ class Server
      * Server constructor.
      * @param EventDispatcherInterface|null $eventDispatcher
      */
-    public function __construct(EventDispatcherInterface $eventDispatcher = null)
+    public function __construct(
+        EventDispatcherInterface $eventDispatcher = null
+    )
     {
         $this->eventDispatcher = $eventDispatcher;
     }
@@ -112,7 +115,18 @@ class Server
             throw new InvalidParamsException("Too few parameters passed");
         }
 
+        $params = $this->prepareArgs($params);
+
         return $reflection->invokeArgs($instance, $params);
+    }
+
+    /**
+     * @param array $args
+     * @return array
+     */
+    public function prepareArgs(array $args): array
+    {
+        return $args;
     }
 
     /**
