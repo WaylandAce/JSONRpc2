@@ -2,33 +2,18 @@
 
 namespace pavelk\JsonRPC;
 
-use pavelk\JsonRPC\Event\ExceptionEvent;
 use pavelk\JsonRPC\Server\Exception\InternalErrorException;
 use pavelk\JsonRPC\Server\Exception\InvalidParamsException;
 use pavelk\JsonRPC\Server\Exception\MethodNotFoundException;
 use pavelk\JsonRPC\Server\Exception\ServerException;
 use pavelk\JsonRPC\Server\Request;
 use pavelk\JsonRPC\Server\Response;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 
 class Server
 {
-    protected $eventDispatcher;
-
     /** @var array */
     protected $map = [];
-
-    /**
-     * Server constructor.
-     * @param EventDispatcherInterface|null $eventDispatcher
-     */
-    public function __construct(
-        EventDispatcherInterface $eventDispatcher = null
-    )
-    {
-        $this->eventDispatcher = $eventDispatcher;
-    }
 
     /**
      * @param string $className
@@ -203,12 +188,8 @@ class Server
                 throw new MethodNotFoundException();
             } catch (ServerException $e) {
                 throw $e;
-            } catch (\Exception $e) {
-
-                if ($this->eventDispatcher)
-                    $this->eventDispatcher->dispatch(ExceptionEvent::NAME, new ExceptionEvent($e));
-
-                throw new InternalErrorException();
+            } catch (\Throwable $e) {
+                $this->handleThrowable($e);
             }
         } catch (ServerException $e) {
             $response->errorCode    = $e->getCode();
@@ -216,6 +197,15 @@ class Server
         }
 
         return $response;
+    }
+
+    /**
+     * @param \Throwable $e
+     * @throws InternalErrorException
+     */
+    public function handleThrowable(\Throwable $e)
+    {
+        throw new InternalErrorException();
     }
 
 }
