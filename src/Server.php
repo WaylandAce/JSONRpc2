@@ -100,16 +100,17 @@ class Server
             throw new InvalidParamsException("Too few parameters passed");
         }
 
-        $params = $this->prepareArgs($params);
+        $params = $this->prepareArgs($reflection, $params);
 
         return $reflection->invokeArgs($instance, $params);
     }
 
     /**
+     * @param \ReflectionMethod $method
      * @param array $args
      * @return array
      */
-    public function prepareArgs(array $args): array
+    public function prepareArgs(\ReflectionMethod $method, array $args): array
     {
         return $args;
     }
